@@ -13,7 +13,7 @@ def calculate_moves(df, mileage_df, serial_number):
     last_installed_mileage = None
     first_event = True
     sequence = []
-    is_invalid = False  # Flag to track invalid state
+    is_invalid = False
 
     for _, row in serial_df.iterrows():
         action = str(row['Action']).lower().strip()
@@ -22,12 +22,12 @@ def calculate_moves(df, mileage_df, serial_number):
         car = row.get('Car')
         position = row.get('Position')
 
+        # Check if same action as previous without opposite in between
+        if sequence and action == sequence[-1]:
+            is_invalid = True
+
         if 'installed' in action:
             install_counter += 1
-
-            # If two installs in a row, mark invalid
-            if sequence and sequence[-1] == 'installed':
-                is_invalid = True
 
             if install_counter == 1 and first_event:
                 last_installed_mileage = 0
@@ -65,7 +65,6 @@ def calculate_moves(df, mileage_df, serial_number):
             sequence.append('removed')
 
         else:
-            # Unknown action
             move_list.append([
                 "❓ Unknown Action",
                 train,
@@ -78,11 +77,13 @@ def calculate_moves(df, mileage_df, serial_number):
 
         first_event = False
 
-    # Final check: too many installs without remove
-    if sequence.count('installed') > sequence.count('removed') + 1:
+    # Final consistency check:
+    # Usually, installs and removes should alternate properly.
+    # This condition allows one extra install if it’s the last action, adjust as needed.
+    if install_counter < remove_counter or install_counter > remove_counter + 1:
         is_invalid = True
 
-    # Add Latest mileage if available
+    # Add latest mileage info
     last_train = str(serial_df.iloc[-1]['Train']).strip()
     mileage_df['Train'] = mileage_df['Train'].astype(str).str.strip()
     latest_row = mileage_df[mileage_df['Train'] == last_train]
