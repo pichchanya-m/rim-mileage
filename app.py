@@ -22,7 +22,6 @@ def calculate_moves(df, mileage_df, serial_number):
         car = row.get('Car')
         position = row.get('Position')
 
-        # Mark error only if same action is repeated consecutively
         is_invalid = prev_action == action and action in ['installed', 'removed']
         if is_invalid:
             sequence_invalid = True
@@ -35,14 +34,12 @@ def calculate_moves(df, mileage_df, serial_number):
             else:
                 last_installed_mileage = train_mileage
 
-            # Rim mileage doesn't increase on install, just carry over the current value
             move_list.append([
                 f"Installed {install_counter}",
                 train,
                 car,
                 position,
                 train_mileage,
-                rim_mileage,
                 "❌ Invalid install sequence" if is_invalid else f"Installed {install_counter}"
             ])
             prev_action = 'installed'
@@ -61,7 +58,6 @@ def calculate_moves(df, mileage_df, serial_number):
                 car,
                 position,
                 train_mileage,
-                rim_mileage,
                 "❌ Invalid remove sequence" if is_invalid else f"Removed {remove_counter}"
             ])
             prev_action = 'removed'
@@ -73,7 +69,6 @@ def calculate_moves(df, mileage_df, serial_number):
                 car,
                 position,
                 train_mileage,
-                rim_mileage,
                 f"Unknown action '{action}'"
             ])
             sequence_invalid = True
@@ -87,7 +82,6 @@ def calculate_moves(df, mileage_df, serial_number):
 
     if not latest_row.empty:
         latest_mileage = latest_row.iloc[0]['Mileage']
-
         if last_installed_mileage is not None:
             rim_mileage += latest_mileage - last_installed_mileage
         else:
@@ -99,8 +93,7 @@ def calculate_moves(df, mileage_df, serial_number):
             car,
             position,
             latest_mileage,
-            rim_mileage,
-            "Latest Mileage"
+            f"Final Total Rim Mileage: {rim_mileage}"
         ])
 
     if sequence_invalid:
@@ -169,8 +162,6 @@ def calculate_summary(df, mileage_df):
     ).reset_index(drop=True)
 
 
-
-
 # Streamlit app
 
 st.title("Rim Mileage Tracker")
@@ -180,7 +171,6 @@ uploaded_file = st.file_uploader("Upload Excel file", type=['xls', 'xlsx', 'xlsm
 if uploaded_file is not None:
     xls = pd.ExcelFile(uploaded_file)
 
-    # Strip whitespace from sheet names for matching
     sheet_names_clean = [s.strip() for s in xls.sheet_names]
     st.write("Sheets in the uploaded Excel file:", sheet_names_clean)
 
@@ -190,7 +180,6 @@ if uploaded_file is not None:
         df_load_wheel = pd.read_excel(xls, sheet_name=sheet_name_map['LoadWheelData'])
         df_latest_mileage = pd.read_excel(xls, sheet_name=sheet_name_map['LatestMileage'])
 
-        # Strip whitespace from column names
         df_load_wheel.columns = df_load_wheel.columns.str.strip()
         df_latest_mileage.columns = df_latest_mileage.columns.str.strip()
 
@@ -214,11 +203,11 @@ if uploaded_file is not None:
                 # Hide the 'Remark' column for display
                 moves_df_display = moves_df.drop(columns=["Remark"])
                 st.dataframe(moves_df_display)
-                st.markdown(
-    f"<div style='font-size:32px; font-weight:bold; color:#2E86AB;'>Total Rim Mileage: {rim_mileage}</div>",
-    unsafe_allow_html=True
-)
 
+                st.markdown(
+                    f"<div style='font-size:32px; font-weight:bold; color:#2E86AB;'>Total Rim Mileage: {rim_mileage}</div>",
+                    unsafe_allow_html=True
+                )
 
         if st.button("Show Summary for All Serial Numbers"):
             summary_df = calculate_summary(df_load_wheel, df_latest_mileage)
