@@ -40,6 +40,7 @@ def calculate_moves(df, mileage_df, serial_number):
                 car,
                 position,
                 train_mileage,
+                rim_mileage,  # <--- new running rim mileage here (no change on install)
                 "❌ Invalid install sequence" if is_invalid else f"Installed {install_counter}"
             ])
             prev_action = 'installed'
@@ -58,6 +59,7 @@ def calculate_moves(df, mileage_df, serial_number):
                 car,
                 position,
                 train_mileage,
+                rim_mileage,  # <--- updated rim mileage after removal
                 "❌ Invalid remove sequence" if is_invalid else f"Removed {remove_counter}"
             ])
             prev_action = 'removed'
@@ -69,6 +71,7 @@ def calculate_moves(df, mileage_df, serial_number):
                 car,
                 position,
                 train_mileage,
+                rim_mileage,  # still show running rim mileage even for unknown actions
                 f"Unknown action '{action}'"
             ])
             sequence_invalid = True
@@ -93,6 +96,7 @@ def calculate_moves(df, mileage_df, serial_number):
             car,
             position,
             latest_mileage,
+            rim_mileage,  # final rim mileage here too
             f"Final Total Rim Mileage: {rim_mileage}"
         ])
 
@@ -100,6 +104,7 @@ def calculate_moves(df, mileage_df, serial_number):
         return move_list, f"❌ Error: Invalid sequence for Serial Number {serial_number}"
 
     return move_list, rim_mileage
+
 
 
 def calculate_summary(df, mileage_df):
@@ -197,7 +202,7 @@ if uploaded_file is not None:
                 st.subheader(f"Moves for Serial Number: {serial_number}")
                 moves_df = pd.DataFrame(
                     moves,
-                    columns=["Action", "Train", "Car", "Position", "Mileage", "Remark"]
+                    columns=["Action", "Train", "Car", "Position", "Mileage", "Rim Mileage","Remark"]
                 )
 
                 # Hide the 'Remark' column for display
